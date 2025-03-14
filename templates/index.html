@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Catalogue 'ana' </title>
+</head>
+<body>
+    <h1>Product Catalogue</h1>
+    
+    <form id="product-form">
+        <input type="text" id="name" placeholder="Product Name" required>
+        <input type="text" id="category" placeholder="Category" required>
+        <input type="number" id="price" placeholder="Price" required>
+        <button type="submit">Add Product</button>  <!-- Added missing submit button -->
+    </form>
+
+    <h2>Product List</h2>
+    <ul id="product-list"></ul>
+
+    <script>
+        async function fetchProducts() {
+            try {
+                const response = await fetch('/products');
+                const products = await response.json(); // Parse the response as JSON
+
+                // Ensure product-list is available
+                const productList = document.getElementById('product-list');
+                if (!productList) {
+                    console.error("Element with ID 'product-list' not found.");
+                    return;
+                }
+
+                productList.innerHTML = ''; // Clear old list
+                products.forEach(product => {
+                    const li = document.createElement('li');
+                    li.textContent = `${product.name} - ${product.category}`;
+                    productList.appendChild(li);
+                });
+            } catch (error) {
+                console.error("Error fetching products:", error);
+            }
+        }
+
+        document.getElementById('product-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const name = document.getElementById('name').value;
+            const category = document.getElementById('category').value;
+            const price = document.getElementById('price').value;
+
+            if (!name || !category || !price) {
+                alert("Please fill in all fields");
+                return;
+            }
+
+            try {
+                const response = await fetch('/add_product', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, category, price })
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to add product");
+                }
+
+                // Refresh product list
+                fetchProducts();
+
+                // Clear input fields
+                document.getElementById('name').value = '';
+                document.getElementById('category').value = '';
+                document.getElementById('price').value = '';
+
+            } catch (error) {
+                console.error("Error adding product:", error);
+            }
+        });
+
+        // Call function on page load to display existing products
+        fetchProducts();
+    </script>
+
+</body>
+</html>

@@ -2,3 +2,4 @@ flask
 flask-cors
 pymongo
 azure-cosmos
+flask_pymongo
