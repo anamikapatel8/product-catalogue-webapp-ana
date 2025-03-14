@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, render_template
 from azure.cosmos import CosmosClient
 import os
-
+from azure.communication.email import EmailClient
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -26,6 +26,13 @@ container = database.get_container_client(CONTAINER_NAME)
 
 app = Flask(__name__, template_folder="templates") #flask to know where to look for templates
 
+# Initialize Azure Communication Email Client
+acs_connection_string = os.getenv("ACS_CONNECTION_STRING")
+email_client = EmailClient.from_connection_string(acs_connection_string)
+
+# Sender email (must be verified in Azure Communication Services)
+sender_email = os.getenv("SENDER_EMAIL")
+
 @app.route("/")
 def home():
     return render_template("index.html") #render index.html when homepage is opened
@@ -49,6 +56,10 @@ def add_product():
         "stock": data.get("stock")
     }
     container.create_item(body=product)
+
+    # Send Email Notification
+    send_email_notification(product)
+
     return jsonify({"message": "Product added successfully!"}), 201
 
 #Route to list all products
@@ -60,3 +71,24 @@ def get_products():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))  # Use Azure's default port
     app.run(debug=True, host="0.0.0.0", port=port)
+
+def send_email_notification(product):
+    try:
+        message = {
+            "senderAddress": sender_email,
+            "recipients": {
+                "to": [{"address": "anamikapatel8@gmail.com"}]  # Change to recipient email
+            },
+            "content": {
+                "subject": f"New Product Added: {product['name']}",
+                "plainText": f"A new product '{product['name']}' has been added to the catalog.\n"
+                             f"Category: {product['category']}\n"
+                             f"Price: ${product['price']}\n"
+                             f"Description: {product['description']}"
+            }
+        }
+        poller = email_client.begin_send(message)
+        result = poller.result()
+        print("Email sent successfully!", result)
+    except Exception as e:
+        print(f"Error sending email: {e}")
