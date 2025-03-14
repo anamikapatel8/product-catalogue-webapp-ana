@@ -1,24 +1,31 @@
 from flask import Flask, request, jsonify, render_template
-from flask_pymongo import flask_pymongo
+from azure.cosmos import CosmosClient
 import os
-from dotenv import load_dotenv
 
-app = Flask(__name__)
 
-#Load environment variables from .env file
 from dotenv import load_dotenv
 load_dotenv()
 
-#use the env variable for connection
-app.config["MONGO_URI"] = os.getenv("DATABASE_URI")
-mongo = PyMongo(app)
+# Get Cosmos DB connection details
+COSMOS_ENDPOINT = os.getenv("DATABASE_URI")  # This is your "Primary Connection String"
+COSMOS_KEY = os.getenv("COSMOS_KEY")  # Store the Primary Key in .env
 
-#Define the product collection
-products_collection = mongo.db.products
+# Initialize Cosmos Client
+client = CosmosClient(COSMOS_ENDPOINT, COSMOS_KEY)
+
+# Get Database and Container
+DATABASE_NAME = "ProductDB"  # Change to your actual database name
+CONTAINER_NAME = "Products"  # Change to your actual container name
+
+database = client.get_database_client(DATABASE_NAME)
+container = database.get_container_client(CONTAINER_NAME)
+
+app = Flask(__name__, template_folder="../templates") #flask to know where to look for templates
 
 @app.route("/")
 def home():
-    return "Welcome to the Product Catalogue Application 'ana'"
+    return render_template("index.html") #render index.html when homepage is opened
+   # return "Welcome to the Product Catalogue Application 'ana'"
 
 
 #Route to add a new product
@@ -26,23 +33,24 @@ def home():
 
 def add_product():
     data = request.get_json()
+    if not data or "name" not in data or "price" not in data:
+        return jsonify({"error": "Invalid input"}), 400
+
     product = {
+        "id": str(data.get("name")), #'id' field is required by cosmosDB
         "name": data.get("name"),
         "description": data.get("description"),
         "price": data.get("price"),
         "category": data.get("category"),
         "stock": data.get("stock")
     }
-    if not data:
-        return jsonify({"error": "Invalid input"}), 400
-
-    result = products_collection.insert_one(product)
-    return jsonify({"message": "Product added","id": str(result.inserted_id)})
+    container.create_item(body=product)
+    return jsonify({"message": "Product added successfully!"}), 201
 
 #Route to list all products
 @app.route("/products", methods=["GET"])
 def get_products():
-    products = list(products_collection.find({},{"_id": 0})) #Exclude objectId
+    products = list(container.read_all_items())  # Correct for Cosmos DB
     return jsonify(products)
 
 if __name__ == "__main__":
