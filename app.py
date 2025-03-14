@@ -24,7 +24,7 @@ CONTAINER_NAME = "Products"  # Change to your actual container name
 database = client.get_database_client(DATABASE_NAME)
 container = database.get_container_client(CONTAINER_NAME)
 
-app = Flask(__name__, template_folder="../templates") #flask to know where to look for templates
+app = Flask(__name__, template_folder="templates") #flask to know where to look for templates
 
 @app.route("/")
 def home():
@@ -58,4 +58,5 @@ def get_products():
     return jsonify(products)
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0")
+    port = int(os.environ.get("PORT", 8000))  # Use Azure's default port
+    app.run(debug=True, host="0.0.0.0", port=port)
