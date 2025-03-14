@@ -10,6 +10,10 @@ load_dotenv()
 COSMOS_ENDPOINT = os.getenv("DATABASE_URI")  # This is your "Primary Connection String"
 COSMOS_KEY = os.getenv("COSMOS_KEY")  # Store the Primary Key in .env
 
+# Ensure variables are loaded correctly
+if not COSMOS_ENDPOINT or not COSMOS_KEY:
+    raise ValueError("Missing required environment variables: DATABASE_URI and COSMOS_KEY")
+
 # Initialize Cosmos Client
 client = CosmosClient(COSMOS_ENDPOINT, COSMOS_KEY)
 
