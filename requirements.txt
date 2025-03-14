@@ -3,3 +3,4 @@ flask-cors
 pymongo
 azure-cosmos
 flask_pymongo
+python-dotenv
