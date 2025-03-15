@@ -5,3 +5,4 @@ azure-cosmos
 flask_pymongo
 python-dotenv
 gunicorn
+azure-storage-blob
