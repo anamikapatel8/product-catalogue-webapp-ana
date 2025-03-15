@@ -45,6 +45,12 @@
             border-radius: 5px;
             box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
         }
+        img {
+            max-width: 100px;
+            height: auto;
+            display: block;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -55,6 +61,7 @@
         <input type="text" id="category" placeholder="Category" required>
         <input type="number" id="price" placeholder="Price" required>
         <input type="text" id="description" placeholder="Description" required>
+        <input type="file" id="image" accept="image/*">
         <button type="submit">Add Product</button>
     </form>
 
@@ -70,7 +77,10 @@
                 productList.innerHTML = '';
                 products.forEach(product => {
                     const li = document.createElement('li');
-                    li.innerHTML = `<strong>${product.name}</strong> - ${product.category}<br>Price: Rs${product.price}/-<br>Description: ${product.description}`;
+                    li.innerHTML = `<strong>${product.name}</strong> - ${product.category}<br>
+                                    Price: Rs${product.price}/-<br>
+                                    Description: ${product.description}<br>
+                                    ${product.image_url ? `<img src="${product.image_url}" alt="Product Image">` : ''}`;
                     productList.appendChild(li);
                 });
             } catch (error) {
@@ -84,19 +94,44 @@
             const category = document.getElementById('category').value;
             const price = document.getElementById('price').value;
             const description = document.getElementById('description').value;
-            
+            const imageFile = document.getElementById('image').files[0];
+
             if (!name || !category || !price || !description) {
                 alert("Please fill in all fields");
                 return;
             }
-            
+
+            let imageUrl = null;
+            if (imageFile) {
+                const formData = new FormData();
+                formData.append('file', imageFile);
+
+                try {
+                    const uploadResponse = await fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!uploadResponse.ok) throw new Error("Failed to upload image");
+
+                    const uploadData = await uploadResponse.json();
+                    imageUrl = uploadData.image_url;
+                } catch (error) {
+                    console.error("Error uploading image:", error);
+                    alert("Image upload failed");
+                    return;
+                }
+            }
+
             try {
                 const response = await fetch('/add_product', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, category, price, description })
+                    body: JSON.stringify({ name, category, price, description, image_url: imageUrl })
                 });
+
                 if (!response.ok) throw new Error("Failed to add product");
+
                 fetchProducts();
                 document.getElementById('product-form').reset();
             } catch (error) {
